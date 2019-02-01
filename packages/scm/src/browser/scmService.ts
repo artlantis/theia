@@ -30,7 +30,7 @@ function toDisposable(fn: () => void): Disposable {
 @injectable()
 export class SCMService implements ISCMService {
     // tslint:disable-next-line:no-any
-    _serviceBrand: any;
+    // _serviceBrand: any;
 
     private _providerIds = new Set<string>();
     private _repositories: ISCMRepository[] = [];

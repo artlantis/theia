@@ -121,7 +121,7 @@ export const ISCMService = Symbol('ISCMService');
 export interface ISCMService {
 
     // tslint:disable-next-line:no-any
-    readonly _serviceBrand: any;
+    // readonly _serviceBrand: any;
     readonly onDidAddRepository: Event<ISCMRepository>;
     readonly onDidRemoveRepository: Event<ISCMRepository>;
 

@@ -14,17 +14,16 @@
  * SPDX-License-Identifier: EPL-2.0 OR GPL-2.0 WITH Classpath-exception-2.0
  ********************************************************************************/
 
-import { ScmMain, SCMProviderFeatures} from '../../api/plugin-api';
+import {SCMGroupFeatures, ScmMain, SCMProviderFeatures} from '../../api/plugin-api';
 import { RPCProtocol } from '../../api/rpc-protocol';
 import { interfaces } from 'inversify';
-import { ISCMProvider, ISCMRepository, ISCMService, StatusBarCommand } from '@theia/scm/lib/common/scm';
+import {ISCMProvider, ISCMRepository, ISCMResource, ISCMService, StatusBarCommand} from '@theia/scm/lib/common/scm';
 import { Emitter, Event} from '@theia/core';
-import { ISCMResourceGroup } from '@theia/scm/src/common/scm';
+import {ISCMResourceGroup, ISplice} from '@theia/scm/src/common/scm';
 
 export class ScmMainImpl implements ScmMain {
 
     private scmService: ISCMService;
-    private _repositories: { [handle: number]: ISCMRepository; } = {};
     private repositories: Map<number, ISCMRepository>;
     constructor(rpc: RPCProtocol, container: interfaces.Container) {
         this.scmService = container.get(ISCMService);
@@ -37,7 +36,7 @@ export class ScmMainImpl implements ScmMain {
     }
 
     $updateSourceControl(handle: number, features: SCMProviderFeatures): void {
-        const repository = this._repositories[handle];
+        const repository = this.repositories.get(handle);
         if (repository) {
             const provider = repository.provider as ScmProviderImpl;
             provider.$updateSourceControl(features);
@@ -45,18 +44,43 @@ export class ScmMainImpl implements ScmMain {
     }
 
     $unregisterSourceControl(handle: number): void {
-        const repository = this._repositories[handle];
+        const repository = this.repositories.get(handle);
 
         if (repository) {
             repository.dispose();
-            delete this._repositories[handle];
+            this.repositories.delete(handle);
         }
     }
 
-    $setInputBoxPlaceholder(sourceControlHandle: number, placeholder: string): void {
+    $setInputBoxPlaceholder(handle: number, placeholder: string): void {
+        const repository = this.repositories.get(handle);
+        if (repository) {
+            repository.input.placeholder = placeholder;
+        }
     }
 
-    $setInputBoxValue(sourceControlHandle: number, value: string): void {
+    $setInputBoxValue(handle: number, value: string): void {
+        const repository = this.repositories.get(handle);
+        if (repository) {
+            repository.input.value = value;
+        }
+    }
+
+    $registerGroup(handle: number, id: string, label: string): void {
+        const repository = this.repositories.get(handle);
+        if (repository) {
+            const provider = repository.provider as ScmProviderImpl;
+            provider.$registerGroup(handle, id, label);
+        }
+    }
+
+    $unregisterGroup(handle: number): void {
+    }
+
+    $updateGroup(handle: number, features: SCMGroupFeatures): void {
+    }
+
+    $updateGroupLabel(handle: number, label: string): void {
     }
 }
 class ScmProviderImpl implements ISCMProvider {
@@ -109,5 +133,46 @@ class ScmProviderImpl implements ISCMProvider {
 
     async getOriginalResource(uri: string): Promise<string> {
         return '';
+    }
+
+    $registerGroup(handle: number, id: string, label: string): void {
+        const group = new RepositoryGroup(
+            this,
+            {},
+            label,
+            id
+        );
+
+        this._groupsByHandle[handle] = group;
+        this.groups.splice(this.groups.elements.length, 0, [group]);
+    }
+}
+
+class RepositoryGroup implements ISCMResourceGroup {
+
+    readonly elements: ISCMResource[] = [];
+    private onDidSpliceEmitter = new Emitter<ISplice<ISCMResource>>();
+    private onDidChangeEmitter = new Emitter<void>();
+    readonly onDidSplice = this.onDidSpliceEmitter.event;
+
+    constructor(
+        public provider: ISCMProvider,
+        public features: SCMGroupFeatures,
+        public label: string,
+        public id: string
+    ) {
+    }
+
+    get onDidChange(): Event<void> {
+        return this.onDidChangeEmitter.event;
+    }
+
+    get hideWhenEmpty(): boolean {
+        return this.features.hideWhenEmpty;
+    }
+
+    splice(start: number, deleteCount: number, toInsert: ISCMResource[]) {
+        this.elements.splice(start, deleteCount, ...toInsert);
+        this.onDidSpliceEmitter.fire({ start, deleteCount, toInsert });
     }
 }

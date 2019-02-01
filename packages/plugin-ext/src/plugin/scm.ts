@@ -60,7 +60,7 @@ class ExtHostSourceControl implements theia.SourceControl {
     private static _handle: number = 0;
     private handle: number = ExtHostSourceControl._handle++;
 
-    private _inputBox: theia.SourceControlInputBox;
+    private readonly _inputBox: theia.SourceControlInputBox;
     private _count: number | undefined = undefined;
     private _quickDiffProvider: theia.QuickDiffProvider | undefined = undefined;
     private _commitTemplate: string | undefined = undefined;
@@ -89,7 +89,7 @@ class ExtHostSourceControl implements theia.SourceControl {
     }
 
     createResourceGroup(id: string, label: string): theia.SourceControlResourceGroup {
-        throw new Error('not implemented');
+        return new SourceControlResourceGroupImpl(this.proxy, this.handle, id, label);
     }
 
     get inputBox(): theia.SourceControlInputBox {
@@ -163,5 +163,54 @@ class ExtHostSourceControl implements theia.SourceControl {
             });
             this.proxy.$updateSourceControl(this.handle, {statusBarCommands: commands});
         }
+    }
+}
+
+class SourceControlResourceGroupImpl implements theia.SourceControlResourceGroup {
+
+    private _hideWhenEmpty: boolean | undefined = undefined;
+    private _resourceStates: theia.SourceControlResourceState[] = [];
+
+    constructor(
+        private proxy: ScmMain,
+        private handle: number,
+        private _id: string,
+        private _label: string,
+    ) {
+        this.proxy.$registerGroup(handle, _id, _label);
+    }
+
+    get id(): string {
+        return this._id;
+    }
+
+    get label(): string {
+        return this._label;
+    }
+
+    set label(label: string) {
+        this._label = label;
+        this.proxy.$updateGroupLabel(this.handle, label);
+    }
+
+    get hideWhenEmpty(): boolean | undefined {
+        return this._hideWhenEmpty;
+    }
+
+    set hideWhenEmpty(hideWhenEmpty: boolean | undefined) {
+        this._hideWhenEmpty = hideWhenEmpty;
+        this.proxy.$updateGroup(this.handle, { hideWhenEmpty });
+    }
+
+    get resourceStates(): theia.SourceControlResourceState[] {
+        return this._resourceStates;
+    }
+
+    set resourceStates(resources: theia.SourceControlResourceState[]) {
+        this._resourceStates = resources;
+    }
+
+    dispose(): void {
+        this.proxy.$unregisterGroup(this.handle);
     }
 }

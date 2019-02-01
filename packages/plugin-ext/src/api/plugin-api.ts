@@ -458,8 +458,14 @@ export interface ScmMain {
     $registerSourceControl(handle: number, id: string, label: string, rootUri?: string): void
     $updateSourceControl(handle: number, features: SCMProviderFeatures): void;
     $unregisterSourceControl(handle: number): void;
-    $setInputBoxValue(sourceControlHandle: number, value: string): void;
-    $setInputBoxPlaceholder(sourceControlHandle: number, placeholder: string): void;
+
+    $registerGroup(handle: number, id: string, label: string): void;
+    $updateGroup(handle: number, features: SCMGroupFeatures): void;
+    $updateGroupLabel(handle: number, label: string): void;
+    $unregisterGroup(handle: number): void;
+
+    $setInputBoxValue(handle: number, value: string): void;
+    $setInputBoxPlaceholder(handle: number, placeholder: string): void;
 }
 
 export interface SCMProviderFeatures {
@@ -468,6 +474,10 @@ export interface SCMProviderFeatures {
     commitTemplate?: string;
     acceptInputCommand?: StatusBarCommand;
     statusBarCommands?: StatusBarCommand[];
+}
+
+export interface SCMGroupFeatures {
+    hideWhenEmpty: boolean;
 }
 
 export interface NotificationMain {
