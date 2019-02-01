@@ -14,6 +14,7 @@
  * SPDX-License-Identifier: EPL-2.0 OR GPL-2.0 WITH Classpath-exception-2.0
  ********************************************************************************/
 
+import { argv } from 'yargs';
 import * as path from 'path';
 import * as cp from 'child_process';
 import { injectable, inject } from 'inversify';
@@ -117,6 +118,9 @@ export class HostedPluginProcess implements ServerPluginRunner {
         env.PATH = process.env.PATH;
         // add HOME to env since some plug-ins need to read files from user's home dir
         env.HOME = process.env.HOME;
+        if (argv.extensionTestsPath) {
+            env.extensionTestsPath = argv.extensionTestsPath;
+        }
 
         const forkOptions: cp.ForkOptions = {
             silent: true,
